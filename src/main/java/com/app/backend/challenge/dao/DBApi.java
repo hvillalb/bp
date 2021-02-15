@@ -1,6 +1,7 @@
 package com.app.backend.challenge.dao;
 
 import com.app.backend.challenge.resources.*;
+import com.app.backend.challenge.utils.JSONUtil;
 
 import java.sql.*;
 import java.time.Instant;
@@ -92,7 +93,7 @@ public class DBApi {
      */
     public MessageIdResource addMessage(MessageResource message) throws SQLException {
         final String sql = "INSERT INTO messages(" +
-                "sender, recipient, type, text, timestamp) " +
+                "sender, recipient, type, metadata, timestamp) " +
                 "VALUES(?,?,?,?,?)";
 
         final String sqlRowId = "SELECT last_insert_rowid()";
@@ -105,8 +106,9 @@ public class DBApi {
             final long timestamp = Instant.now().toEpochMilli();
             pstmt.setInt(1, message.getSender());
             pstmt.setInt(2, message.getRecipient());
-            pstmt.setString(3, message.getContent().getType());
-            pstmt.setString(4, message.getContent().getText());
+            pstmt.setString(3, message.getContent().getType().toUpperCase());
+            final String metadata = JSONUtil.dataToJson(message.getContent());
+            pstmt.setString(4, metadata.replaceAll("[\\n]", ""));
             pstmt.setLong(5, timestamp);
             pstmt.executeUpdate();
 
@@ -134,7 +136,7 @@ public class DBApi {
      */
     public MessageListResource readMessages(final MessagesRequestResource messageRequestResource) throws SQLException {
 
-        final String sql = "SELECT id, timestamp, sender, recipient, type, text " +
+        final String sql = "SELECT id, timestamp, sender, recipient, type, metadata " +
                 "FROM messages " +
                 "WHERE recipient = ? " +
                 "AND id >= ? " +
@@ -152,13 +154,25 @@ public class DBApi {
             final ResultSet rs  = pstmt.executeQuery();
             while(rs.next()) {
                 final MessageResource messageResource = new MessageResource();
-                final ContentResource contentResource = new ContentResource();
+
+                // Read Message
                 messageResource.setId(rs.getInt("id"));
                 messageResource.setTimestamp(rs.getLong("timestamp"));
                 messageResource.setSender(rs.getInt("sender"));
                 messageResource.setRecipient(rs.getInt("recipient"));
+
+                // Read Message Metadata
+                final ContentResource contentResource = new ContentResource();
                 contentResource.setType(rs.getString("type"));
-                contentResource.setText(rs.getString("text"));
+                ContentResource metadata =
+                        (ContentResource) JSONUtil.jsonToData(rs.getString("metadata"),ContentResource.class);
+                contentResource.setText(metadata.getText());
+                contentResource.setHeight(metadata.getHeight());
+                contentResource.setWidth(metadata.getWidth());
+                contentResource.setUrl(metadata.getUrl());
+                contentResource.setSource(metadata.getSource());
+
+                // Set ;Metadata to Message Resource
                 messageResource.setContent(contentResource);
                 messages.add(messageResource);
             }
