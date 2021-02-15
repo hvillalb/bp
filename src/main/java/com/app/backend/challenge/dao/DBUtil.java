@@ -60,7 +60,7 @@ public class DBUtil {
                 + "	sender STRING NOT NULL,"
                 + "	recipient STRING NOT NULL,"
                 + "	type STRING NOT NULL,"
-                + "	text STRING NOT NULL,"
+                + "	metadata STRING NOT NULL,"
                 + " timestamp INT NOT NULL, "
                 + " CONSTRAINT fk1 FOREIGN KEY (sender) REFERENCES users(id), "
                 + " CONSTRAINT fk2 FOREIGN KEY (recipient) REFERENCES users(id)"
